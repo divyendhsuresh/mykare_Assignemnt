@@ -10,6 +10,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
+
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -97,6 +99,34 @@ public class UserService {
         }
 
         return ResponseEntity.ok(new ApiResponse(true, "Sign in successful", message));
+    }
+
+    public ResponseEntity<ApiResponse> getAllUsers(String email){
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isEmpty() || existingUser.get().getRole() != Role.ADMIN){
+            return ResponseEntity.status(403).body(new ApiResponse(false,"Access is not permitted"));
+        }
+
+        List<User> users = userRepository.findAll();
+        return ResponseEntity.status(200).body(new ApiResponse(true,"Users are ",users));
+    }
+
+    public ResponseEntity<ApiResponse>deleteByEmail(String adminEmail,String userEmail){
+        Optional<User> existingUser = userRepository.findByEmail(adminEmail);
+
+        if (existingUser.isEmpty() || existingUser.get().getRole() != Role.ADMIN){
+            return ResponseEntity.status(403).body(new ApiResponse(false,"Access denied"));
+        }
+
+        Optional<User> userToDelete = userRepository.findByEmail(userEmail);
+
+        if (userToDelete.isEmpty()){
+            return ResponseEntity.status(403).body(new ApiResponse(false,"User is not found"));
+        }
+
+        userRepository.delete(userToDelete.get());
+        return ResponseEntity.ok(new ApiResponse(true, "User deleted successfully"));
+
     }
 
 }

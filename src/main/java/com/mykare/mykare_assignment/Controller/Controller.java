@@ -5,6 +5,7 @@ import com.mykare.mykare_assignment.Entity.User;
 import com.mykare.mykare_assignment.Repository.UserRepository;
 import com.mykare.mykare_assignment.Response.ApiResponse;
 import com.mykare.mykare_assignment.Service.UserService;
+import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,5 +34,14 @@ public class Controller {
         return userService.signInUser(request.getEmail(), request.getPassword());
     }
 
+    @GetMapping("/allusers")
+    public ResponseEntity<ApiResponse>getAllUsers(@RequestParam String email){
+        return userService.getAllUsers(email);
+    }
+
+    @DeleteMapping("/delete")
+    public ResponseEntity<ApiResponse>deleteByEmail(@RequestParam String adminEmail,@RequestParam String userEmail){
+        return userService.deleteByEmail(adminEmail,userEmail);
+    }
 
 }
