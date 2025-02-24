@@ -8,6 +8,7 @@ public class MykareAssignmentApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(MykareAssignmentApplication.class, args);
+		System.out.println("Mykare Project has been started ::");
 	}
 
 }

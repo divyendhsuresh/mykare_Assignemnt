@@ -2,6 +2,7 @@ package com.mykare.mykare_assignment.Service;
 
 import com.mykare.mykare_assignment.DTO.SignupRequest;
 //import com.mykare.mykare_assignment.Entity.Role;
+import com.mykare.mykare_assignment.Entity.Role;
 import com.mykare.mykare_assignment.Entity.User;
 import com.mykare.mykare_assignment.Repository.UserRepository;
 import com.mykare.mykare_assignment.Response.ApiResponse;
@@ -65,9 +66,31 @@ public class UserService {
             user.setIpAddress(ip);
             user.setCountry(country);
 
+            if (request.getRole().toString().equals("ADMIN")) {
+                user.setRole(Role.ADMIN);
+            } else {
+                user.setRole(Role.USER);
+            }
+
             User result = userRepository.save(user);
             System.out.println(result);
             return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", user));
         }
     }
+
+
+    public ResponseEntity<ApiResponse> signInUser(String email, String password) {
+        Optional<User> existingUser = userRepository.findByEmail(email);
+        if (existingUser.isEmpty()) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Invalid email or password"));
+        }
+
+        User user = existingUser.get();
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            return ResponseEntity.badRequest().body(new ApiResponse(false, "Invalid email or password"));
+        }
+
+        return ResponseEntity.ok(new ApiResponse(true, "Sign in successful", user));
+    }
+
 }

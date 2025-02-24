@@ -1,4 +1,5 @@
 package com.mykare.mykare_assignment.Controller;
+import com.mykare.mykare_assignment.DTO.SignInRequest;
 import com.mykare.mykare_assignment.DTO.SignupRequest;
 import com.mykare.mykare_assignment.Entity.User;
 import com.mykare.mykare_assignment.Repository.UserRepository;
@@ -26,4 +27,11 @@ public class Controller {
         ResponseEntity<ApiResponse> newUser = userService.registerUser(request);
         return  newUser;
     }
+
+    @PostMapping("/signin")
+    public ResponseEntity<ApiResponse>signInUser(@RequestBody SignInRequest request){
+        return userService.signInUser(request.getEmail(), request.getPassword());
+    }
+
+
 }

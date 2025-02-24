@@ -27,7 +27,10 @@ public class User {
     private String ipAddress;
 
     private String country;
-//
-//    @Enumerated(EnumType.STRING)
-//    private Role role;
+
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "role_enum DEFAULT 'USER'")
+    private Role role;
+
+
 }
