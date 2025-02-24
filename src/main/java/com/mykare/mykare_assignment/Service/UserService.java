@@ -89,8 +89,14 @@ public class UserService {
         if (!passwordEncoder.matches(password, user.getPassword())) {
             return ResponseEntity.badRequest().body(new ApiResponse(false, "Invalid email or password"));
         }
+        String message;
+        if (user.getRole() == Role.ADMIN){
+            message = "ADMIN logged in successfuly";
+        }else {
+            message = "USER logged in Successfuly";
+        }
 
-        return ResponseEntity.ok(new ApiResponse(true, "Sign in successful", user));
+        return ResponseEntity.ok(new ApiResponse(true, "Sign in successful", message));
     }
 
 }
