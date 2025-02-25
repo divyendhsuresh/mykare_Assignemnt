@@ -55,7 +55,6 @@ public class UserService {
     public ResponseEntity<ApiResponse> registerUser(SignupRequest request) {
         Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
         if (existingUser.isPresent()) {
-//            System.out.println("test-1" + existingUser);
             return ResponseEntity.badRequest().body(new ApiResponse(false, "Email is already registered."));
         } else {
             String ip = getPublicIP();
@@ -76,8 +75,9 @@ public class UserService {
             }
 
             User result = userRepository.save(user);
+            result.setPassword(null);
             System.out.println(result);
-            return ResponseEntity.ok(new ApiResponse(true, "User registered successfully", user));
+            return ResponseEntity.ok(new ApiResponse(true, "User registered successfully",result));
         }
     }
 
