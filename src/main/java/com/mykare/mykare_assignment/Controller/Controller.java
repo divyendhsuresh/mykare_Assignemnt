@@ -1,11 +1,9 @@
 package com.mykare.mykare_assignment.Controller;
 import com.mykare.mykare_assignment.DTO.SignInRequest;
 import com.mykare.mykare_assignment.DTO.SignupRequest;
-import com.mykare.mykare_assignment.Entity.User;
 import com.mykare.mykare_assignment.Repository.UserRepository;
 import com.mykare.mykare_assignment.Response.ApiResponse;
 import com.mykare.mykare_assignment.Service.UserService;
-import lombok.Getter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -24,9 +22,7 @@ public class Controller {
 
     @PostMapping("/signup")
     public ResponseEntity<ApiResponse> registerUser(@RequestBody SignupRequest request) {
-        System.out.println("first hit");
-        ResponseEntity<ApiResponse> newUser = userService.registerUser(request);
-        return  newUser;
+        return userService.registerUser(request);
     }
 
     @PostMapping("/signin")

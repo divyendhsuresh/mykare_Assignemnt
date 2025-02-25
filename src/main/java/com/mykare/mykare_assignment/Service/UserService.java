@@ -1,11 +1,11 @@
 package com.mykare.mykare_assignment.Service;
 
 import com.mykare.mykare_assignment.DTO.SignupRequest;
-//import com.mykare.mykare_assignment.Entity.Role;
 import com.mykare.mykare_assignment.Entity.Role;
 import com.mykare.mykare_assignment.Entity.User;
 import com.mykare.mykare_assignment.Repository.UserRepository;
 import com.mykare.mykare_assignment.Response.ApiResponse;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -21,13 +21,14 @@ public class UserService {
     private final BCryptPasswordEncoder passwordEncoder;
     private final WebClient webClient;
 
+    @Autowired
     public UserService(UserRepository userRepository) {
         this.userRepository = userRepository;
         this.passwordEncoder = new BCryptPasswordEncoder();
         this.webClient = WebClient.create();
     }
 
-    private String getPublicIP() {
+    public String getPublicIP() {
         String url = "https://api64.ipify.org?format=json";
         return webClient.get()
                 .uri(url)
@@ -37,7 +38,7 @@ public class UserService {
                 .block();
     }
 
-    private String getCountryFromIP(String ip) {
+    public String getCountryFromIP(String ip) {
         String url = "http://ip-api.com/json/" + ip + "?fields=status,message,country";
         Map response = webClient.get()
                 .uri(url)
@@ -54,7 +55,7 @@ public class UserService {
     public ResponseEntity<ApiResponse> registerUser(SignupRequest request) {
         Optional<User> existingUser = userRepository.findByEmail(request.getEmail());
         if (existingUser.isPresent()) {
-            System.out.println("test-1" + existingUser);
+//            System.out.println("test-1" + existingUser);
             return ResponseEntity.badRequest().body(new ApiResponse(false, "Email is already registered."));
         } else {
             String ip = getPublicIP();
