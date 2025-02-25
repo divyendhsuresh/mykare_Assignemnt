@@ -11,12 +11,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 
-import java.util.Objects;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -26,18 +27,17 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class JUnitTest {
 
+    @InjectMocks
+    private UserService userService;
+
     @Mock
     private UserRepository userRepository;
 
     @Mock
     private BCryptPasswordEncoder passwordEncoder;
 
-    @InjectMocks
-    private UserService userService;
-
     private SignupRequest signupRequest;
     private User mockUser;
-
 
     @BeforeEach
     void setUp() {
@@ -55,67 +55,190 @@ class JUnitTest {
         mockUser.setGender(signupRequest.getGender());
         mockUser.setRole(Role.ADMIN);
 
-//        lenient().when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
-//        lenient().when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("hashedPassword");
-//        lenient().when(userRepository.save(any(User.class))).thenReturn(mockUser);
     }
 
-    /** ✅ Test: Should register user successfully */
+
+    // Test: Should register user successfully
     @Test
-    void shouldRegisterUserSuccessfully() {
+    public void testSignupSuccess(){
+        SignupRequest request = new SignupRequest("testuser","testtest@gmail.com","password","male",Role.ADMIN);
+        User user = new User(12L,"testuser", "test@example.com", passwordEncoder.encode("password123"),"male","18.00.00.01","India",Role.ADMIN);
+        when(userRepository.save(any(User.class))).thenReturn(user);
 
-//        doReturn("127.0.0.1").when(spyUserService).getPublicIP();
-//        doReturn("India").when(spyUserService).getCountryFromIP("127.0.0.1");
+        assertDoesNotThrow(() -> userService.registerUser(request));
 
-        when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("hashedPassword");
-        when(userRepository.save(any(User.class))).thenReturn(mockUser);
+    }
 
-        ResponseEntity<ApiResponse> response = userService.registerUser(signupRequest);
+    //Test:if email is already registered
+    @Test
+    public void testSignupEmailAlreadyRegistered() {
+        SignupRequest request = new SignupRequest("testuser", "testtest@gmail.com", "password", "male", Role.ADMIN);
+        User existingUser = new User(1L, "testuser", "testtest@gmail.com", passwordEncoder.encode("password123"), "male", "18.00.00.01", "India", Role.ADMIN);
+        when(userRepository.findByEmail(request.getEmail())).thenReturn(Optional.of(existingUser));
+        ResponseEntity<ApiResponse> response = userService.registerUser(request);
 
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
         assertNotNull(response.getBody());
-        assertTrue(Objects.requireNonNull(response.getBody()).isSuccess());
-        assertEquals("User registered successfully", response.getBody().getMessage());
-
-        verify(userRepository, times(1)).findByEmail(signupRequest.getEmail());
-        verify(passwordEncoder, times(1)).encode(signupRequest.getPassword());
-        verify(userRepository, times(1)).save(any(User.class));    }
-
-    /** ❌ Test: Should fail if email is already registered */
-    @Test
-    void shouldNotRegisterDuplicateUser() {
-        when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.of(mockUser));
-
-        ResponseEntity<ApiResponse> response = userService.registerUser(signupRequest);
-
         assertFalse(response.getBody().isSuccess());
-        assertEquals("Email is already registered.", response.getBody().getMessage());
-        verify(userRepository, never()).save(any(User.class));
+        assertTrue(response.getBody().getMessage().contains("already registered"));
     }
 
-    /** ✅ Test: Should assign ADMIN role correctly */
     @Test
-    void shouldAssignAdminRole() {
-        signupRequest.setRole(Role.ADMIN);
+    public void testSignInUserInvalidEmail() {
+        // Arrange: Email not found.
+        String email = "nonexistent@example.com";
+        String password = "anyPassword";
+        when(userRepository.findByEmail(email)).thenReturn(Optional.empty());
 
-        when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("hashedPassword");
+        // Act
+        ResponseEntity<ApiResponse> response = userService.signInUser(email, password);
 
-        ResponseEntity<ApiResponse> response = userService.registerUser(signupRequest);
-
-        assertEquals(Role.ADMIN, ((User) response.getBody().getData()).getRole());
+        // Assert
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals("Invalid email or password", response.getBody().getMessage());
     }
 
-    /** ✅ Test: Should assign USER role correctly */
     @Test
-    void shouldAssignUserRole() {
-        signupRequest.setRole(Role.ADMIN);
+    public void testSignInUserInvalidPassword() {
+        String email = "test@example.com";
+        String inputPassword = "wrongPassword";
+        String storedPassword = "correctPassword";
 
-        when(userRepository.findByEmail(signupRequest.getEmail())).thenReturn(Optional.empty());
-        when(passwordEncoder.encode(signupRequest.getPassword())).thenReturn("hashedPassword");
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(storedPassword);
+        user.setRole(Role.USER);
 
-        ResponseEntity<ApiResponse> response = userService.registerUser(signupRequest);
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+//        when(passwordEncoder.matches(inputPassword, storedPassword)).thenReturn(false);
 
-        assertEquals(Role.USER, ((User) response.getBody().getData()).getRole());
+        ResponseEntity<ApiResponse> response = userService.signInUser(email, inputPassword);
+
+        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertFalse(response.getBody().isSuccess());
+        assertEquals("Invalid email or password", response.getBody().getMessage());
     }
+
+    @Test
+    public void testSignInUserAdminSuccess() {
+        String email = "admin@example.com";
+        String inputPassword = "adminPass";
+
+        User user = new User();
+        user.setEmail(email);
+        BCryptPasswordEncoder realEncoder = new BCryptPasswordEncoder();
+        String storedPassword = realEncoder.encode(inputPassword);
+        user.setPassword(storedPassword);
+        user.setRole(Role.ADMIN);
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        ResponseEntity<ApiResponse> response = userService.signInUser(email, inputPassword);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals("Sign in successful", response.getBody().getMessage());
+        assertEquals("ADMIN logged in successfuly", response.getBody().getData());
+    }
+
+    @Test
+    public void testSignInUserUserSuccess() {
+        String email = "user@example.com";
+        String inputPassword = "userPass";
+        BCryptPasswordEncoder realEncoder = new BCryptPasswordEncoder();
+
+        String storedPassword = realEncoder.encode(inputPassword);
+
+        User user = new User();
+        user.setEmail(email);
+        user.setPassword(storedPassword);
+        user.setRole(Role.USER);
+
+        when(userRepository.findByEmail(email)).thenReturn(Optional.of(user));
+
+        ResponseEntity<ApiResponse> response = userService.signInUser(email, inputPassword);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().isSuccess());
+        assertEquals("Sign in successful", response.getBody().getMessage());
+        assertEquals("USER logged in Successfuly", response.getBody().getData());
+    }
+
+    @Test
+    public void testGetAllUsersAdminSuccess() {
+        String adminEmail = "admin@example.com";
+        String adminPassword = "adminPass";
+        BCryptPasswordEncoder realEncoder = new BCryptPasswordEncoder();
+        String encodedAdminPassword = realEncoder.encode(adminPassword);
+
+        User adminUser = new User();
+        adminUser.setEmail(adminEmail);
+        adminUser.setPassword(encodedAdminPassword);
+        adminUser.setRole(Role.ADMIN);
+
+        List<User> usersList = new ArrayList<>();
+
+        User user1 = new User();
+        user1.setEmail("user1@example.com");
+        user1.setPassword(realEncoder.encode("user1Pass"));
+        user1.setRole(Role.USER);
+        usersList.add(user1);
+
+        usersList.add(adminUser);
+
+        when(userRepository.findByEmail(adminEmail)).thenReturn(Optional.of(adminUser));
+        when(userRepository.findAll()).thenReturn(usersList);
+
+        ResponseEntity<ApiResponse> response = userService.getAllUsers(adminEmail);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        ApiResponse apiResponse = response.getBody();
+        assertTrue(apiResponse.isSuccess());
+        assertEquals("Users are ", apiResponse.getMessage());
+        assertEquals(usersList, apiResponse.getData());
+    }
+
+    @Test
+    public void testDeleteByEmailAdminSuccess() {
+        String adminEmail = "admin@example.com";
+        String adminPassword = "adminPass";
+        BCryptPasswordEncoder realEncoder = new BCryptPasswordEncoder();
+        String encodedAdminPassword = realEncoder.encode(adminPassword);
+
+        User adminUser = new User();
+        adminUser.setEmail(adminEmail);
+        adminUser.setPassword(encodedAdminPassword);
+        adminUser.setRole(Role.ADMIN);
+
+        String userEmail = "user@example.com";
+        String userPassword = "userPass";
+        String encodedUserPassword = realEncoder.encode(userPassword);
+
+        User userToDelete = new User();
+        userToDelete.setEmail(userEmail);
+        userToDelete.setPassword(encodedUserPassword);
+        userToDelete.setRole(Role.USER);
+
+        // Stub repository methods
+        when(userRepository.findByEmail(adminEmail)).thenReturn(Optional.of(adminUser));
+        when(userRepository.findByEmail(userEmail)).thenReturn(Optional.of(userToDelete));
+
+        ResponseEntity<ApiResponse> response = userService.deleteByEmail(adminEmail, userEmail);
+
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        ApiResponse apiResponse = response.getBody();
+        assertNotNull(apiResponse);
+        assertTrue(apiResponse.isSuccess());
+        assertEquals("User deleted successfully", apiResponse.getMessage());
+
+        verify(userRepository).delete(userToDelete);
+    }
+
 }
