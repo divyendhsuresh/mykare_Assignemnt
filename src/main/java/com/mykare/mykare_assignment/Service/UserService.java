@@ -28,7 +28,7 @@ public class UserService {
         this.webClient = WebClient.create();
     }
 
-    public String getPublicIP() {
+    private String getPublicIP() {
         String url = "https://api64.ipify.org?format=json";
         return webClient.get()
                 .uri(url)
@@ -38,7 +38,7 @@ public class UserService {
                 .block();
     }
 
-    public String getCountryFromIP(String ip) {
+    private String getCountryFromIP(String ip) {
         String url = "http://ip-api.com/json/" + ip + "?fields=status,message,country";
         Map response = webClient.get()
                 .uri(url)
